@@ -7,6 +7,11 @@ import time
 pwm4 = PWM(Pin(4), freq=20000, duty=512)
 
 # =======================================================================
+# PIN AZUL - GPIO15
+# Crea el objeto PWM en el pin GPIO 15 con una frecuencia de 28.1 kHz
+pwm15 = PWM(Pin(15), freq=28100)
+
+# =======================================================================
 # PIN VERDE - GPIO2
 # Crea el objeto PWM en el pin GPIO 2
 pwm2 = PWM(Pin(2))
@@ -28,11 +33,6 @@ time.sleep(2)
 
 # Apaga el PWM en el pin GPIO 2
 pwm2.deinit()
-
-# =======================================================================
-# PIN AZUL - GPIO15
-# Crea el objeto PWM en el pin GPIO 15 con una frecuencia de 28.1 kHz
-pwm15 = PWM(Pin(15), freq=28100)
 
 while True:
     # Aumenta el ciclo de trabajo desde 0 hasta 1023 (2**10=1024) en pasos de 1
