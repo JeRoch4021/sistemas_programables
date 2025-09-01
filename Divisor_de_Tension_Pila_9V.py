@@ -11,7 +11,7 @@ while True:
     # Lee el valor analógico del pin
     Volt = adc34.read() # Valor entre 0 y 4095 (12 bits)
     # Ajusta el valor leído para reflejar el voltaje real de la pila de 9V
-    Volt_corregido = round(Volt / 4095 * 9 * (1 + 8.2) / 8.2, 2) # Ajuste según el divisor de voltaje
+    Volt_corregido = round(Volt / 4095 * 3.6 * (9.8 + 2) / 2, 2) # Ajuste según el divisor de voltaje
     # Imprime el voltaje corregido
     print("El voltaje es de:", Volt_corregido, "V")
     # Espera 5 segundos antes de la siguiente lectura
