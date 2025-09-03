@@ -23,8 +23,13 @@ ICONO = [ # Matriz de puntos
     [ 1, 0, 1, 0, 1, 0, 1, 0, 1],
 ]
 
-for y, fila in enumerate(ICONO): # Dibuja los puntos de la matriz 
-    for x, c in enumerate(fila):
-        oled.pixel(x, y, c)
+def cambiarTamanioIcono(icono, oled, x0=0, y0=0, escala=1):
+    for y, fila in enumerate(ICONO): # Dibuja los puntos de la matriz 
+        for x, c in enumerate(fila):
+            if c: # Si c es igual a 1
+                for dy in range(escala):
+                    for dx in range(escala):
+                        oled.pixel(x0+x*escala, y0+y*escala, c)
+    oled.show()
 
-oled.show()
+cambiarTamanioIcono(ICONO, oled, 10, 10, 4)
