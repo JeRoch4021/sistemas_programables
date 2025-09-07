@@ -1,3 +1,15 @@
+'''
+Integrantes del equipo:
+Rocha Sainez Jeshua Isaac
+Becerra Quezada Fabricio
+
+Objetivo del programa:
+Reemplazar el logotipo de Raspberry Pi por el logotipo del ITL
+(Instituto Tecnológico de León) o del TecNM, cargándose como
+una imagen en el formato adecuado (ejemplo .pbm) para finalmente
+mostrarse en la pantalla OLED
+'''
+
 import machine
 import ssd1306
 import framebuf
