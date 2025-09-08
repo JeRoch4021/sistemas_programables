@@ -1,3 +1,15 @@
+'''
+Integrantes del equipo:
+Rocha Sainez Jeshua Isaac
+Becerra Quezada Fabricio
+
+Objetivo del programa:
+Conectar un potenciómetro al pin analógico del ESP32 y mostrar en
+la pantalla OLED una gráfica en tiempo real del voltaje leído, en
+esta visualización se debe proyectar una representación gráfica
+(gráfico de barras o lineal) que se actualice dinámicamente
+'''
+
 import machine
 import ssd1306
 from time import sleep
