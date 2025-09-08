@@ -13,15 +13,16 @@ from machine import Pin, ADC, SoftI2C
 from dht import DHT11
 import ssd1306
 from utime import sleep_ms
+import time
 
-#Configuración de la pantalla OLED 
+# Configuración de la pantalla OLED 
 i2c = SoftI2C(scl=machine.Pin(22), sda=machine.Pin(21))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
-#Configuración de la fotorresistencia
+# Configuración de la fotorresistencia
 ldr = ADC(Pin(34))
 ldr.atten(ADC.ATTN_11DB)
-#Configuración de DHT11
-pin_04 = DHT11(Pin(4)) # crea el objeto pin_04 para un módulo DHT11 en el pin 04
+# Configuración de DHT11
+pin_04 = DHT11(Pin(4)) # Crea el objeto pin_04 para un módulo DHT11 en el pin 04
 pin_04.measure()
 
 # Método para inniciar la presentacion del programa
@@ -60,3 +61,4 @@ if __name__ == '__main__':
             menu(optn)
         else:
             print("ERROR. Opción incorrecta")
+        time.sleep(0.20)
