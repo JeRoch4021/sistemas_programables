@@ -13,7 +13,7 @@ mostrarse en la pantalla OLED
 import machine
 import ssd1306
 import framebuf
-from images import (LOGO)
+from images import (LOGO) # IMportar la matriz por medio de images.py almacenado en el microcontrolador
 
 i2c = machine.SoftI2C(scl=machine.Pin(22), sda=machine.Pin(21))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
