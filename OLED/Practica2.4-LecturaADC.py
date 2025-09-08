@@ -53,13 +53,14 @@ def plot_time(yp, t, x, y, var = [0.0,3.3], vpts=[25, 16, 40], hpts = [25, 55, 1
     t, x, y = plot_time (volts, t, x, y)
     sleep_ms (500)
     """
-    #Axis
+    # Ejes
     oled.vline(vpts[0], vpts[1], vpts[2], 1) #x, y, h
     oled.hline(hpts[0], hpts[1], hpts[2], 1) #x, y, w
     oled.text(str(round(var[0],1)), vpts[0]-25, hpts[1]-5)
     oled.text(str(round(var[1],1)), vpts[0]-25, vpts[1])
-    #y - axis
+    # Escalado - y
     y[1] = int((yp-var[0])/(var[1]-var[0]) * (vpts[1]-hpts[1]) + hpts[1]) #Interpolation
+    
     if t < hpts[2] - hpts[0]:
         x[1] = x[0]+1
     else:
@@ -94,11 +95,20 @@ if __name__ == '__main__':
     
     WIDTH = 128
     HEIGHT = 64
-    FACTOR = 3.3 / (65535)
+    FACTOR = 3.3 / 4095 # Cambiar el FACTOR a la resolución ADC de 12 bits que soporta el ESP32
+                        # al usar el metodo read() (con valores de 0 a 4095)
     
-    i2c = machine.SoftI2C(scl=machine.Pin(22), sda=machine.Pin(21))
-    pot = ADC(0)
+    # Configuración de los pines 21 y 22 para la funcion de proyección i2c en el ESP32 con una frecuencia de 400kHz
+    # para activar el modo rápido de envío de datos a la pantalla OLED
+    i2c = machine.SoftI2C(scl=machine.Pin(22), sda=machine.Pin(21), freq=400000)
     oled = ssd1306.SSD1306_I2C(WIDTH, HEIGHT, i2c)
+    
+    # Configuración del pin GPIO34 (D34) como lector analógico (ADC)
+    pot = ADC(Pin(34))
+    # Ajustarlo para un rango de 0 - 3.3 V
+    pot.atten(ADC.ATTN_11DB)
+    # Ajuste para la resolución de 12 bits (0 - 4095)
+    pot.width(ADC.WIDTH_12BIT)
     
     #Global Variables
     t = 0
@@ -108,9 +118,10 @@ if __name__ == '__main__':
     oled.fill(0)
     
     while True:
-        volts = pot.read_u16() * FACTOR
-        t,x,y = plot_time(volts,t,x,y)
-        oled.fill_rect(0,0,120,15,0)
+        # Ajuste a la función read() valida para el ESP32
+        volts = pot.read() * FACTOR
+        t,x,y = plot_time(volts, t, x, y)
+        oled.fill_rect(0, 0, 120, 15, 0)
         oled.text("Volts: ", 0, 0)
         oled.text(str(round(volts,1)), 52, 0)
         oled.show()

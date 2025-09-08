@@ -43,7 +43,7 @@ def cambiarTamanioIcono(icono, oled, x0=0, y0=0, escala=1):
     # Recorre las filas de la matriz, donde 
     # y: es el índice de fila, 
     # fila: es la lista con los valores de esa fila
-    for y, fila in enumerate(ICONO): # Dibuja los puntos de la matriz
+    for y, fila in enumerate(icono): # Dibuja los puntos de la matriz
         # Recorre la columna de cada variable fila (la lista de valores), donde
         # x: es el índice de la columna,
         # c: es el valor del elemento
@@ -56,7 +56,7 @@ def cambiarTamanioIcono(icono, oled, x0=0, y0=0, escala=1):
                     # (de manera horizontal hacia la derecha) según la escala
                     for dx in range(escala):
                         # Llamada al objeto de pantalla 
-                        oled.pixel(x0+x*escala, y0+y*escala, c)
+                        oled.pixel(x0 + x*escala + dx, y0 + y*escala + dy, c)
     oled.show()
 
 cambiarTamanioIcono(ICONO, oled, 10, 10, 4)
