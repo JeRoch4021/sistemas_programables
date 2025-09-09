@@ -13,7 +13,11 @@ from machine import Pin, ADC, SoftI2C
 from dht import DHT11
 import ssd1306
 from utime import sleep_ms
+<<<<<<< HEAD
 import time
+=======
+from images import (LOGO)
+>>>>>>> 2038851fbb8ad3997d94efde55d4cd00706ed3b1
 
 # Configuración de la pantalla OLED 
 i2c = SoftI2C(scl=machine.Pin(22), sda=machine.Pin(21))
