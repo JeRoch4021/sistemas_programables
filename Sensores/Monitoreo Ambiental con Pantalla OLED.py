@@ -12,6 +12,7 @@ Objetivo:
 from machine import Pin, ADC, SoftI2C
 from dht import DHT11
 import ssd1306
+import time
 from utime import sleep_ms
 from images import (LOGO)
 
@@ -70,14 +71,67 @@ def desplegarMenu():
     oled.text('2. Temperatura', 0, 20)
     oled.text('3. Humedad', 0, 30)
 
+def grafica(parametro):
+    oled.fill(0)
+    oled.text("Graficando:", 0, 0)
+    oled.text(parametro, 0, 10)
+    oled.show()
+    sleep_ms(1000)
+
+    start_time = time.ticks_ms()
+    x = 0  # posición en X
+
+    # Dibujar ejes básicos
+    oled.fill(0)
+    oled.line(0, 63, 127, 63, 1)   # eje X
+    oled.line(0, 20, 0, 63, 1)     # eje Y
+    oled.show()
+
+    while time.ticks_diff(time.ticks_ms(), start_time) < 20000:  # 20 segundos
+        # --- Lectura según parámetro ---
+        if parametro == "luminosidad":
+            valor = ldr.read()              # 0 - 4095
+            valor = int((valor/4095)*43)    # escalar a 0-43 (área gráfica)
+
+        elif parametro == "temperatura":
+            pin_04.measure()
+            valor = pin_04.temperature()    # ej. 0-50 °C
+            valor = int((valor/50)*43)
+
+        elif parametro == "humedad":
+            pin_04.measure()
+            valor = pin_04.humidity()       # ej. 0-100 %
+            valor = int((valor/100)*43)
+
+        # --- Graficar ---
+        y = 63 - valor   # invertir para que valores altos suban
+        if x < 128:
+            oled.pixel(x, y, 1)
+        else:
+            # Si se llena la pantalla, reinicia
+            oled.fill(0)
+            oled.line(0, 63, 127, 63, 1)
+            oled.line(0, 20, 0, 63, 1)
+            x = 0
+
+        oled.show()
+        sleep_ms(500)  # muestra cada 0.5s
+        x += 2         # avanza 2 px por lectura
+
+    # --- Termina el tiempo: regresar al menú ---
+    oled.fill(0)
+    desplegarMenu()
+    oled.show()
+    
+
 # Ejecución de las opciones del menú
 def menu(opcion):
-    case 1:
-        return mostrarLuminosidad()
-    case 2:
-        return mostrarTemperatura()
-    case 3:
-        return mostrarHumedad()
+    if opcion == 1:
+        grafica("luminosidad")
+    elif opcion == 2:
+        grafica("temperatura")
+    elif opcion == 3:
+        grafica("humedad")
     
 if __name__ == '__main__':
     iniciar()
