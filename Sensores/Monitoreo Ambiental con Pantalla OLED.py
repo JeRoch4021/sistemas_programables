@@ -12,30 +12,32 @@ Objetivo:
 from machine import Pin, ADC, SoftI2C
 from dht import DHT11
 import ssd1306
-from utime import sleep_ms
-<<<<<<< HEAD
 import time
-=======
+from utime import sleep_ms
 from images import (LOGO)
->>>>>>> 2038851fbb8ad3997d94efde55d4cd00706ed3b1
 
-# Configuración de la pantalla OLED 
-i2c = SoftI2C(scl=machine.Pin(22), sda=machine.Pin(21))
+#Configuración de la pantalla OLED 
+i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
+<<<<<<< HEAD
 pin = machine.Pin(16, machine.Pin.OUT)
 pin.value(0) # Configura GPIO16 en bajo para resetear el OLED
 pin.value(1) # Mientras que el OLED esté ejecutándose, GPIO16 debe estar en 1
 
 # Configuración de la fotorresistencia
 ldr = ADC(Pin(34))
+=======
+#Configuración de la fotorresistencia
+ldr = Pin(25, Pin.IN)
+>>>>>>> c179d4553dfa119390457415f62b132a0837f12e
 ldr.atten(ADC.ATTN_11DB)
-# Configuración de DHT11
-pin_04 = DHT11(Pin(4)) # Crea el objeto pin_04 para un módulo DHT11 en el pin 04
-pin_04.measure()
+#Configuración de DHT11
+pin_04 = DHT11(Pin(4)) # crea el objeto pin_04 para un módulo DHT11 en el pin 04
 
 # Método para inniciar la presentacion del programa
 def iniciar():
     # Mostrar en la OLED los datos del equipo y el logo del Tecnológico
+<<<<<<< HEAD
     oled.fill(0)
     oled.text('Bienvenidos MAPOLED', 0, 0)
     oled.text('1.Luminosidad', 0, 10)
@@ -44,16 +46,45 @@ def iniciar():
     oled.text('4.Integrantes', 0, 40)
     oled.show()
     return
+=======
+    buffer = bytearray(LOGO)
+    logo_tec = framebuf.FrameBuffer(buffer, 128, 64, framebuf.MONO_HLSB) # Convierte el formato de LOGO en binario
+>>>>>>> c179d4553dfa119390457415f62b132a0837f12e
 
+    oled.fill(0)
+    # mostrar logo del ITL
+    oled.blit(logo_tec, 0, 0)
+    oled.show()
+    sleep_ms(3000)
+    # Mostrar el nombre de los integrantes
+    oled.fill(0)
+    oled.text('Sistemas programables', 0, 0)
+    oled.text('Jeshua Rocha', 0, 10)
+    oled.text('Fabricio Becerra', 0, 20)
+    oled.show()
+    sleep_ms(3000)
+    # Mostrar el menu
+    desplegarMenu()
+
+# Método para  mostrar en pantalla los valores de luminosidad durante 20 seg en la pantalla 
 def mostrarLuminosidad():
+    valor = ldr.read()
+    oled.text(str(valor), 0, 0)
     return
 
+# Método para  mostrar en pantalla los valores de temperatura durante 20 seg en la pantalla 
 def mostrarTemperatura():
+    pin_04.measure()
+    temperatura = pin_04.temperature()
     return
 
+# Método para  mostrar en pantalla los valores de humedad durante 20 seg en la pantalla 
 def mostrarHumedad():
+    pin_04.measure()
+    humedad = pin_04.humidity()
     return
 
+<<<<<<< HEAD
 def mostrarIntegrantes():
     oled.fill(0)
     oled.text('Sistemas programables', 0, 0)
@@ -68,24 +99,88 @@ def mostrarIntegrantes():
     
     oled.show()
     return
+=======
+def desplegarMenu():
+    olde.fill(0)
+    oled.text('Presione: ')
+    oled.text('1. Luminosidad', 0, 10)
+    oled.text('2. Temperatura', 0, 20)
+    oled.text('3. Humedad', 0, 30)
+
+def grafica(parametro):
+    oled.fill(0)
+    oled.text("Graficando:", 0, 0)
+    oled.text(parametro, 0, 10)
+    oled.show()
+    sleep_ms(1000)
+
+    start_time = time.ticks_ms()
+    x = 0  # posición en X
+
+    # Dibujar ejes básicos
+    oled.fill(0)
+    oled.line(0, 63, 127, 63, 1)   # eje X
+    oled.line(0, 20, 0, 63, 1)     # eje Y
+    oled.show()
+
+    while time.ticks_diff(time.ticks_ms(), start_time) < 20000:  # 20 segundos
+        # --- Lectura según parámetro ---
+        if parametro == "luminosidad":
+            valor = ldr.value()        # ahora es solo 0 o 1
+            # Si es 1 -> línea arriba, si es 0 -> línea abajo
+            y = 30 if valor == 1 else 60
+
+        elif parametro == "temperatura":
+            pin_04.measure()
+            valor = pin_04.temperature()    # ej. 0-50 °C
+            valor = int((valor/50)*43)
+
+        elif parametro == "humedad":
+            pin_04.measure()
+            valor = pin_04.humidity()       # ej. 0-100 %
+            valor = int((valor/100)*43)
+
+        # --- Graficar ---
+        y = 63 - valor   # invertir para que valores altos suban
+        if x < 128:
+            oled.pixel(x, y, 1)
+        else:
+            # Si se llena la pantalla, reinicia
+            oled.fill(0)
+            oled.line(0, 63, 127, 63, 1)
+            oled.line(0, 20, 0, 63, 1)
+            x = 0
+
+        oled.show()
+        sleep_ms(500)  # muestra cada 0.5s
+        x += 2         # avanza 2 px por lectura
+
+    # --- Termina el tiempo: regresar al menú ---
+    oled.fill(0)
+    desplegarMenu()
+    oled.show()
+    
+>>>>>>> c179d4553dfa119390457415f62b132a0837f12e
 
 # Ejecución de las opciones del menú
 def menu(opcion):
-    case 1:
-        return mostrarLuminosidad()
-    case 2:
-        return mostrarTemperatura()
-    case 3:
-        return mostrarHumedad()
-    case 4:
-        return mostrarIntegrantes()
+    if opcion == 1:
+        grafica("luminosidad")
+    elif opcion == 2:
+        grafica("temperatura")
+    elif opcion == 3:
+        grafica("humedad")
     
 if __name__ == '__main__':
     iniciar()
     while True:
         optn = int(input("Ingresa la opción que desees visualizar"))
-        if optn <5 and optn > 0:
+        if optn < 4 and optn > 0:
             menu(optn)
+            time_ms(20000)
+            desplegarMenu()
         else:
             print("ERROR. Opción incorrecta")
-        time.sleep(0.20)
+            oled.text("ERROR.", 0,0)
+            oled.text('Opción incorrecta', 0, 10)
+            desplegarMenu()
