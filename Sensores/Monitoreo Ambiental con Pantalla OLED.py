@@ -17,10 +17,10 @@ from utime import sleep_ms
 from images import (LOGO)
 
 #Configuración de la pantalla OLED 
-i2c = SoftI2C(scl=machine.Pin(22), sda=machine.Pin(21))
+i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
 #Configuración de la fotorresistencia
-ldr = ADC(Pin(34))
+ldr = Pin(25, Pin.IN)
 ldr.atten(ADC.ATTN_11DB)
 #Configuración de DHT11
 pin_04 = DHT11(Pin(4)) # crea el objeto pin_04 para un módulo DHT11 en el pin 04
@@ -60,7 +60,7 @@ def mostrarTemperatura():
 
 # Método para  mostrar en pantalla los valores de humedad durante 20 seg en la pantalla 
 def mostrarHumedad():
-    pin_04.measure
+    pin_04.measure()
     humedad = pin_04.humidity()
     return
 
@@ -90,7 +90,7 @@ def grafica(parametro):
     while time.ticks_diff(time.ticks_ms(), start_time) < 20000:  # 20 segundos
         # --- Lectura según parámetro ---
         if parametro == "luminosidad":
-            valor = ldr.read()              # 0 - 4095
+            valor = ldr.value()              # 0 - 4095
             valor = int((valor/4095)*43)    # escalar a 0-43 (área gráfica)
 
         elif parametro == "temperatura":
