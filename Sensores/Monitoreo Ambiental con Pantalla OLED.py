@@ -22,6 +22,10 @@ from images import (LOGO)
 # Configuración de la pantalla OLED 
 i2c = SoftI2C(scl=machine.Pin(22), sda=machine.Pin(21))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
+pin = machine.Pin(16, machine.Pin.OUT)
+pin.value(0) # Configura GPIO16 en bajo para resetear el OLED
+pin.value(1) # Mientras que el OLED esté ejecutándose, GPIO16 debe estar en 1
+
 # Configuración de la fotorresistencia
 ldr = ADC(Pin(34))
 ldr.atten(ADC.ATTN_11DB)
@@ -32,6 +36,13 @@ pin_04.measure()
 # Método para inniciar la presentacion del programa
 def iniciar():
     # Mostrar en la OLED los datos del equipo y el logo del Tecnológico
+    oled.fill(0)
+    oled.text('Bienvenidos MAPOLED', 0, 0)
+    oled.text('1.Luminosidad', 0, 10)
+    oled.text('2.Temperatura', 0, 20)
+    oled.text('3.Humedad', 0, 30)
+    oled.text('4.Integrantes', 0, 40)
+    oled.show()
     return
 
 def mostrarLuminosidad():
@@ -44,6 +55,18 @@ def mostrarHumedad():
     return
 
 def mostrarIntegrantes():
+    oled.fill(0)
+    oled.text('Sistemas programables', 0, 0)
+    oled.text('Integrantes:', 0, 10)   
+    oled.text('Jeshua Rocha', 0, 20)
+    oled.text('Fabricio Becerra', 0, 30)
+    
+    buffer = bytearray(LOGO)
+    logo_tec = framebuf.FrameBuffer(buffer, 128, 64, framebuf.MONO_HLSB) # Convierte el formato de LOGO en binario
+    # Logo del ITL ubicado en la esquina izquierda superior
+    oled.blit(logo_tec, 0, 40)
+    
+    oled.show()
     return
 
 # Ejecución de las opciones del menú
