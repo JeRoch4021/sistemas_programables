@@ -90,8 +90,9 @@ def grafica(parametro):
     while time.ticks_diff(time.ticks_ms(), start_time) < 20000:  # 20 segundos
         # --- Lectura según parámetro ---
         if parametro == "luminosidad":
-            valor = ldr.value()              # 0 - 4095
-            valor = int((valor/4095)*43)    # escalar a 0-43 (área gráfica)
+            valor = ldr.value()        # ahora es solo 0 o 1
+            # Si es 1 -> línea arriba, si es 0 -> línea abajo
+            y = 30 if valor == 1 else 60
 
         elif parametro == "temperatura":
             pin_04.measure()
