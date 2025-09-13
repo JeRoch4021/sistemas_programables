@@ -18,12 +18,12 @@ from utime import sleep_ms
 import framebuf
 from images import (LOGO)
 
-#Configuración de la pantalla OLED 
+# Configuración de la pantalla OLED 
 i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
-#Configuración de la fotorresistencia
+# Configuración de la fotorresistencia
 ldr = Pin(25, Pin.IN)
-#Configuración de DHT11
+# Configuración de DHT11
 pin_04 = DHT11(Pin(4)) # crea el objeto pin_04 para un módulo DHT11 en el pin 04
 
 # Método para iniciar la presentacion del programa
@@ -33,7 +33,7 @@ def iniciar():
     logo_tec = framebuf.FrameBuffer(buffer, 128, 64, framebuf.MONO_HLSB) # Convierte el formato de LOGO en binario
     oled.fill(0)
     
-    # mostrar logo del ITL
+    # Mostrar logo del ITL
     oled.blit(logo_tec, 30, 0)
     oled.show()
     sleep_ms(3000)
@@ -80,7 +80,7 @@ def leerLuminosidadBinaria():
     for _ in range(muestras):
         conteo += 1 - mostrarLuminosidad() # Ahora es solo 0 o 1
         sleep_ms(20) # Leer cada 20s
-    porcentaje = int ((conteo/muestras)*100)
+    porcentaje = int ((conteo/muestras)*100) # Porcentaje según la iluminosidad
     return porcentaje
 
 def dibujarEjes(parametro):
