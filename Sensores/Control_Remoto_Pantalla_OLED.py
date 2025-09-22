@@ -12,7 +12,7 @@ Objetivo:
 
 from machine import Pin, ADC, SoftI2C
 import ssd1306
-import time
+from time import sleep_ms
 import framebuf
 from images import (LOGO)
 from ir_rx import NEC_16
@@ -22,27 +22,27 @@ i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
 
 # Configuración IR
-ir_pin = Pin(15, Pin.IN) # Receptor IR en GPIO15
+ir_pin = Pin(2, Pin.IN) # Receptor IR en GPIO15
 
 # Diccionario de códigos del control
 codigos = {
-    "1": 0x00FFA25D,
-    "2": 0x00FF629D,
-    "3": 0x00FFE21D,
-    "4": 0x00FF22DD,
-    "5": 0x00FF02FD,
-    "6": 0x00FFC23D,
-    "7": 0x00FFE01F,
-    "8": 0x00FFA857,
-    "9": 0x00FF906F,
-    "*": 0x00FF6897,
-    "0": 0x00FF9867,
-    "#": 0x00FFB04F,
-    "UP": 0x00FF18E7,
-    "DOWN": 0x00FF4AB5,
-    "LEFT": 0x00FF10EF,
-    "RIGHT": 0x00FF5AA5,
-    "OK": 0x00FF38C7
+    "1": 0x45,
+    "2": 0x46,
+    "3": 0x47,
+    "4": 0x44,
+    "5": 0x40,
+    "6": 0x43,
+    "7": 0x7,
+    "8": 0x15,
+    "9": 0x9,
+    "*": 0x16,
+    "0": 0x19,
+    "#": 0xd,
+    "UP": 0x18,
+    "DOWN": 0x52,
+    "LEFT": 0x8,
+    "RIGHT": 0x5a,
+    "OK": 0x1c
     }
 
 # Variable globales
@@ -52,7 +52,7 @@ total_opciones = 3
 tam_icono = 10
 tam_min = 5
 tam_max = 30
-
+ultimo_codigo = None
 
 ICONO = [ # Matriz de puntos
     [ 0, 0, 0, 1, 1, 1, 0, 0, 0],
@@ -118,8 +118,9 @@ def control_icono():
     oled.fill(0)
     oled.text("Opcion 2:", 0, 0)
     oled.text("Tam.Icono: " + str(tam_icono), 0, 12)
+    escala = max(1, tam_icono//5)
     # Dibujamos el icono que en anteriores practicas hicimos
-    cambiarTamanioIcono(ICONO, oled, 40, 20, tam_icono//5)
+    cambiarTamanioIcono(ICONO, oled, 40, 20, escala)
         
 def mostrar_logo_datos():
     # Mostrar en la OLED los datos del equipo y el logo del Tecnológico
@@ -150,15 +151,12 @@ def mostrar_logo_datos():
     sleep_ms(3000)
     
 # CALLBACK IR
-ultimo_codigo = None
-    
 def callback_ir(data, addr, ctrl):
     """
     NEC_16 devuelve data de 16 bits
     """
     
     global ultimo_codigo, opcion_menu, tam_icono
-    
     ultimo_codigo = data
     print("Boton IR recibido:", hex(data)) # Debug de consola
     
@@ -172,9 +170,10 @@ def callback_ir(data, addr, ctrl):
         if opcion_menu > total_opciones:
             opcion_menu = 1
             
-    elif data == codigo["OK"]:
+    # Navegación del menu principal        
+    elif data == codigos["OK"]:
         if opcion_menu == 1:
-            deteccion_botones_ctrl_remoto(ultimo_codigo)
+            deteccion_botones_ctrl_remoto(ultimo_codigo or "Sin datos")
         elif opcion_menu == 2:
             control_icono()
         elif opcion_menu == 3:
@@ -183,15 +182,14 @@ def callback_ir(data, addr, ctrl):
     # Control icono
     if opcion_menu == 2:
         if data == codigos["RIGHT"]:
-            tam_icono += 1
-            if tam_icono > tam_max:
-                tam_icono = tam_max
+            tam_icono += min(tam_icono + 1, tam_max)
             control_icono()
         elif data == codigos["LEFT"]:
-            tam_icono -= 1
-            if tam_icono < tam_min:
-                tam_icono = tam_min
+            tam_icono -= max(tam_icono - 1, tam_min)
             control_icono()
+
+# Iniciar receptor IR
+ir = NEC_16(ir_pin, callback_ir())
 
 if __name__ == '__main__':
     while True:
