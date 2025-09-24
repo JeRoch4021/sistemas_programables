@@ -50,6 +50,7 @@ total_opciones = 3
 # Etiqueta para identificar el estado del menu por el IR
 estado_menu = "MENU"
 
+# Varaibles globales para controlar el tamaño del icono
 tam_icono = 10
 tam_min = 5
 tam_max = 30
@@ -163,7 +164,7 @@ def mostrar_logo_datos():
     oled.fill(0)
     oled.text('Practica:', 0, 0)
     oled.text('Ctrl.Remoto+OLED', 0, 10)
-    oled.text('Fecha: 25/09/2025', 0, 20)
+    oled.text('Fecha:25/09/2025', 0, 20)
     oled.show()
     sleep_ms(3000)
     
@@ -197,7 +198,8 @@ def callback_ir(data, addr, ctrl):
             if opcion_menu == 1: estado_menu = "OP1"
             elif opcion_menu == 2: estado_menu = "OP2"
             elif opcion_menu == 3: estado_menu = "OP3"
-            
+    
+    # Detección de botones con Ctrol remoto
     if estado_menu == "OP1":
         deteccion_botones_ctrl_remoto(data)
         if data in [codigos["*"], codigos["#"]]: # Al presinar esto botones se regresara al menu principal
@@ -212,7 +214,8 @@ def callback_ir(data, addr, ctrl):
         elif data in [codigos["*"], codigos["#"]]: # Al presinar esto botones se regresara al menu principal
             estado_menu = "MENU"
         control_icono()
-            
+    
+    # Mostrar nuestros datos personales, objetivo y logo       
     if estado_menu == "OP3":
         mostrar_logo_datos()
         estado_menu = "MENU"

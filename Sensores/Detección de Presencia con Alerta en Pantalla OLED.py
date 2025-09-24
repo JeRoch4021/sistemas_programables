@@ -25,7 +25,7 @@ oled = ssd1306.SSD1306_I2C(128, 64, i2c)
 # Configuración del sensor ultrasónico
 sensor = HCSR04(trigger_pin=15, echo_pin=12, echo_timeout_us=10000)
 
-# PIR con interrupción
+# Configuración del sensor PIR
 PIR_Interrupt = Pin(13, Pin.IN)
 
 # Adjuntar interrupción externa a GPIO13 y flanco 
@@ -34,11 +34,14 @@ PIR_Interrupt = Pin(13, Pin.IN)
 # Variable global
 Motion_Detected = False
 
+# Interrupción asociada
 def handle_interrupt(Pin):
     global Motion_Detected
     Motion_Detected = True
     
-PIR_Interrupt.irq(trigger=Pin.IRQ_RISING, handler=handle_interrupt)
+# Se configura la interrupción en el flanco ascendente (IRQ_RISING),
+# que ocurre cuando el PIR detecta movimiento.
+PIR_Interrupt.irq(trigger=Pin.IRQ_RISING, handler=handle_interrupt) 
 
 def iniciar():
     # Mostrar en la OLED los datos del equipo y el logo del Tecnológico
