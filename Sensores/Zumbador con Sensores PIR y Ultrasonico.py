@@ -121,7 +121,7 @@ def sonar_melodia_con_PIR():
     Melodía: es un cambio de frecuencia en una secuencia.
     Beep: es una secuencia fija por tiempo corto.
               
-    Tabla de equivalencias entre notas y frecuancias:
+    Tabla de equivalencias entre notas y frecuencias:
     
     Nota              Frecuencia
     C4 (Do)           262 Hz
