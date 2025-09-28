@@ -18,6 +18,7 @@ from machine import Pin, ADC, SoftI2C
 from time import sleep, ticks_ms, ticks_diff
 from mpu6050 import MPU6050
 import ssd1306
+import urandom
 
 # Configuracion de OLED
 i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
@@ -81,34 +82,6 @@ y = 60
 velocidad_nave = 2 # Velocidad inicial de la nave
 velocidad_enemigos = 1
 
-# Variables globales para el power-up
-power_up_activo = False
-tipo_power_up = None
-tiempo_power_up = 0
-duracion_power_up = 3000  # duración en ms (3 segundos)
-
-def activar_power_up(tipo):
-    global power_up_activo, tipo_power_up, tiempo_power_up
-    power_up_activo = True
-    tipo_power_up = tipo
-    tiempo_power_up = ticks_ms()
-    
-def manejar_power_up():
-    global power_up_activo, tipo_power_up, balas
-    if power_up_activo:
-        # Verificar duración
-        if ticks_diff(ticks_ms(), tiempo_power_up) > duracion_power_up:
-            power_up_activo = False
-            tipo_power_up = None
-        else:
-            # Efecto del power-up: disparo triple
-            if tipo_power_up == "triple_bala":
-                if not btn_select.value() and len(balas) < 9:
-                    balas.append({"x": x + ancho_nave // 2, "y": y})
-                    balas.append({"x": x + ancho_nave // 2 - 2, "y": y})
-                    balas.append({"x": x + ancho_nave // 2 + 2, "y": y})
-
-
 def animacion_rapida(x_nave, y_nave):
     # Animación de energía alrededor de la nave
     for i in range(3):
@@ -131,6 +104,8 @@ def animacion_rapida(x_nave, y_nave):
         oled.show()
         sleep(0.05)
 
+# Creamos la función para crear a los eneimgos y hacerlo aparecen en una
+# área de la pantalla especifica
 def crear_enemigos():
     enemigos = []
     for f in range(2):
@@ -150,19 +125,10 @@ def dibujar_alien(x_pos, y_pos):
 
 # Método para dibujar la nave en la oled
 def dibujar_nave(x_pos, y_pos):
-    if power_up_activo and tipo_power_up == "triple_bala":
-        # Dibujar nave con efecto especial (borde extra)
-        for fila in range(alto_nave):
-            for col in range(ancho_nave):
-                if ICONO_NAVE[fila][col] == 1:
-                    oled.pixel(x_pos + col, y_pos + fila, 1)
-                    if fila==0 or fila==alto_nave-1 or col==0 or col==ancho_nave-1:
-                        oled.pixel(x_pos + col, y_pos + fila, 1)
-    else:
-        for fila in range(alto_nave):
-            for col in range(ancho_nave):
-                if ICONO_NAVE[fila][col] == 1:
-                    oled.pixel(x_pos + col, y_pos + fila, 1)
+    for fila in range(alto_nave):
+        for col in range(ancho_nave):
+            if ICONO_NAVE[fila][col] == 1:
+                oled.pixel(x_pos + col, y_pos + fila, 1)
 
 # Método para mover la nave
 def mover_nave_joystick():
@@ -219,13 +185,14 @@ def mover_enemigos():
         if e["x"] <= 0 or e["x"] >= 128 - ancho_alien:
             e["dir"] *= -1
             e["y"] += 3
-            # Evitar que los enemigos vaya mas arriba del margen
-            if e["y"] < 10:
-                e["y"] = 10
-                
+            
+        # Si baja demasiado, reaparece arriba
+        if e["y"] > 63 -alto_alien:
+            e["y"] = 10
+            e["x"] = urandom.getrandbits(7) % (128 - ancho_alien)
 
 # Al detectar un movimiento rápido la nave hace una ráfaga de tres disparos
-def disparo_rafaga():
+def power_up():
     global ultimo_disparo, x, y
     datos = mpu.read_accel_data(g=True)
     ax = abs(datos['x'])
@@ -235,11 +202,11 @@ def disparo_rafaga():
     # Detectar un "golpe rápido"
     if (ax > 1.0 or ay > 1.0 or az > 1.5) and ticks_diff(ticks_ms(), ultimo_disparo) > cooldown * 1000:
         ultimo_disparo = ticks_ms()
-        # Generar tres balas con un pequeño retraso
-        activar_power_up("triple_bala")  # por ejemplo: disparo triple
-        animacion_rapida(x, y)           # Animación especial
-        # Disparo inicial
+        animacion_rapida(x, y)# Animación especial del power_up
+        # Ataque que especial: Triple ráfaga
         balas.append({"x": x + ancho_nave // 2, "y": y})
+        balas.append({"x": x + ancho_nave // 2 - 2, "y": y})
+        balas.append({"x": x + ancho_nave // 2 + 2, "y": y})
             
 # Función para disparar cuando se presione el botón
 def disparar():
@@ -362,6 +329,7 @@ def ciclo_joystick():
         
         mover_nave_joystick()
         disparar()
+        power_up() # Detectar movimiento brusco y ejecutar power_up
         mover_enemigos()
         mover_balas()
         detectar_colisiones()
@@ -385,10 +353,9 @@ def ciclo_mpu():
     while True:
         oled.fill(0)
         
-        mover_nave_mpu()          # Mover con inclinación
-        disparo_rafaga()          # Detectar movimiento rápido y disparar
-        manejar_power_up()         # Aplicar efecto del power-up
+        mover_nave_mpu() # Mover con inclinación
         disparar()
+        power_up() # Detectar movimiento brusco y ejecutar power_up
         mover_enemigos()
         mover_balas()
         detectar_colisiones()
