@@ -1,11 +1,27 @@
+"""
+Integrantes:
+    Rocha Sainez Jeshua Isaaac
+    Becerra Quezada Fabricio
+    
+Fecha:
+    29/09/2025
+
+Objetivo:
+    Diseñar e implementar un juego interactivo en una pantalla OLED,
+    utilizando el sensor MPU6050  y joystick como control de movimiento.
+    El jugador deberá manipular un personaje o cursor en tiempo real
+    mediante la inclinación del dispositivo, enfrentando desafíos dinámicos
+    basados en la física del movimiento.
+"""
+
 from machine import Pin, ADC, SoftI2C
-from time import sleep
+from time import sleep, ticks_ms, ticks_diff
 from mpu6050 import MPU6050
 import ssd1306
 
 # Configuracion de OLED
-i2c = SoftI2C(0, scl=Pin(22), sda=Pin(21))
-oled = ssd1306.SSD1306(128, 64, i2c)
+i2c = SoftI2C(scl=Pin(22), sda=Pin(21))
+oled = ssd1306.SSD1306_I2C(128, 64, i2c)
 
 # Configuración de mpu
 i2c_mpu = SoftI2C(scl=Pin(22), sda=Pin(21))
@@ -16,10 +32,18 @@ joy_x = ADC(Pin(26)) # Eje X
 joy_y = ADC(Pin(27)) # Eje Y
 joy_x.atten(ADC.ATTN_11DB)  # Extiende rango a 0-3.3 V
 joy_y.atten(ADC.ATTN_11DB)
+# Configuramos el botón SW del JoyStick 
+btn_select = Pin(25, Pin.IN, Pin.PULL_UP)
 
 # Puntuación y vidas del jugador
 puntos = 0
 vidas = 3
+nivel = 1
+# Programación de las balas disparadas por la nave
+balas = []
+vel_bala = 4
+ultimo_disparo = 0
+cooldown = 0.8     # Segundos entre ráfagas
 
 ICONO_ALIEN = [ # Matriz de alien (enemigo)
     [0, 0, 0, 1, 1, 1, 0, 0, 0],
@@ -33,29 +57,8 @@ ICONO_ALIEN = [ # Matriz de alien (enemigo)
     [1, 0, 1, 0, 1, 0, 1, 0, 1],
 ]
 
-ancho_alien = len(ICONO_ENEMIGO[0])
-alto_alien = len(ICONO_ENEMIGO)
-
-enemigos = []
-for f in range(2):
-    for c in range(4):
-        # Diccionario de enmigos
-        enemigos.append({"x":10+c*25, "y":5+f*15, "dir":1, "vivo":True})
-
-def dibujar_alien(x_pos, y_pos):
-    for fila in range(alto_alien):
-        for col in range(ancho_alien):
-            if ICONO_ALIEN[fila][col] == 1:
-                oled.pixel(x_pos + col, y_pos + fila, 1)
-
-def mover_enemigos():
-    for e in enemigos:
-        if not e["vivo"]:
-            continue
-        e["x"] += e["dir"]
-        if e["x"] <= 0 or e["x"] >= 128 - ancho_alien:
-            e["dir"] *= -1
-            e["y"] += 3
+ancho_alien = len(ICONO_ALIEN[0])
+alto_alien = len(ICONO_ALIEN)
 
 ICONO_NAVE = [ # Matriz de la nave ()
     [0, 0, 0, 0, 1, 0, 0, 0, 0],
@@ -74,8 +77,26 @@ alto_nave = len(ICONO_NAVE)
 
 # Posicion inicial de la nave
 x = (128 - ancho_nave) // 2
-y = (64 - alto_nave) // 2
-velocidad = 2 # Velocidad inicial de la nave
+y = 60
+velocidad_nave = 2 # Velocidad inicial de la nave
+velocidad_enemigos = 1
+
+def crear_enemigos():
+    enemigos = []
+    for f in range(2):
+        for c in range(4):
+            # Diccionario de enmigos
+            enemigos.append({"x":10+c*25, "y":10+f*15, "dir":1, "vivo":True})
+    return enemigos
+
+enemigos = crear_enemigos()
+
+# Dibujar funciones
+def dibujar_alien(x_pos, y_pos):
+    for fila in range(alto_alien):
+        for col in range(ancho_alien):
+            if ICONO_ALIEN[fila][col] == 1:
+                oled.pixel(x_pos + col, y_pos + fila, 1)
 
 # Método para dibujar la nave en la oled
 def dibujar_nave(x_pos, y_pos):
@@ -91,68 +112,81 @@ def mover_nave_joystick():
     val_y = joy_y.read()
 
     # Movimiento horizontal
-    if val_x < 1800:
-        x -= velocidad
-    elif val_x > 2300:
-        x += velocidad
+    if val_x < 1600:
+        x -= velocidad_nave
+    elif val_x > 2500:
+        x += velocidad_nave
 
     # Movimiento vertical (invertido: arriba es menor)
-    if val_y < 1800:
-        y -= velocidad
-    elif val_y > 2300:
-        y += velocidad
+    if val_y < 1600:
+        y -= velocidad_nave
+    elif val_y > 2500:
+        y += velocidad_nave
 
     # Limitar dentro de los bordes de la pantalla
     if x < 0: x = 0
     if x > 128 - ancho_nave: x = 128 - ancho_nave
-    if y < 0: y = 0
+    if y < 10: y = 10
     if y > 64 - alto_nave: y = 64 - alto_nave
 
 def mover_nave_mpu():
     global x, y
-    datos = mpu.get_values()
-    ax = datos['AcX']
-    ay = datos['AcY']
+    datos = mpu.read_accel_data(g=False)
+    ax = datos['x']
+    ay = datos['y']
 
     # Ajustar sensibilidad (puedes cambiar los umbrales)
-    if ax < -2000:       # Inclinación a la izquierda
-        x -= 2
-    elif ax > 2000:      # Inclinación a la derecha
-        x += 2
-
-    if ay > 2000:        # Inclinación hacia adelante
+    if ax < -2:       # Inclinación a la izquierda
         y += 2
-    elif ay < -2000:     # Inclinación hacia atrás
+    elif ax > 2:      # Inclinación a la derecha
         y -= 2
+
+    if ay > 2:        # Inclinación hacia adelante
+        x -= 2
+    elif ay < -2:     # Inclinación hacia atrás
+        x += 2
 
     # Limitar los bordes de la pantalla
     if x < 0: x = 0
     if x > 128 - ancho_nave: x = 128 - ancho_nave
-    if y < 0: y = 0
+    if y < 10: y = 10
     if y > 64 - alto_nave: y = 64 - alto_nave
-
-ultimo_disparo = 0
-cooldown = 0.8     # Segundos entre ráfagas
+    
+def mover_enemigos():
+    for e in enemigos:
+        if not e["vivo"]:
+            continue
+        e["x"] += e["dir"] * velocidad_enemigos
+        if e["x"] <= 0 or e["x"] >= 128 - ancho_alien:
+            e["dir"] *= -1
+            e["y"] += 3
+            # Evitar que los enemigos vaya mas arriba del margen
+            if e["y"] < 10:
+                e["y"] = 10
+                
 
 # Al detectar un movimiento rápido la nave hace una ráfaga de tres disparos
 def disparo_rafaga():
     global ultimo_disparo
-    datos = mpu.get_values()
-    ax = abs(datos['AcX'])
-    ay = abs(datos['AcY'])
-    az = abs(datos['AcZ'])
+    datos = mpu.read_accel_data(g=True)
+    ax = abs(datos['x'])
+    ay = abs(datos['y'])
+    az = abs(datos['z'])
 
     # Detectar un "golpe rápido"
-    if (ax > 12000 or ay > 12000 or az > 20000) and (time.ticks_ms() - ultimo_disparo > cooldown * 1000):
-        ultimo_disparo = time.ticks_ms()
+    if (ax > 0.8 or ay > 0.8 or az > 1.0) and ticks_diff(ticks_ms(), ultimo_disparo) > cooldown * 1000:
+        ultimo_disparo = ticks_ms()
         # Generar tres balas con un pequeño retraso
-        for i in range(3):
-            balas.append({"x": x + ANCHO_NAVE // 2, "y": y})
-            time.sleep(0.1)   # 100ms entre balas
-
-# Programación de las balas disparadas por la nave
-balas = []
-vel_bala = 4
+        for i in range(1):
+            balas.append({"x": x + ancho_nave // 2, "y": y})
+            sleep(0.1)   # 100ms entre balas
+            
+# Función para disparar cuando se presione el botón
+def disparar():
+    # Si el botón SW es presionado y hay menos de 3 balas en pantalla
+    if not btn_select.value() and len(balas) < 3:
+        balas.append({"x": x + ancho_nave//2, "y": y})
+        sleep(0.1) # Anti-rebote simple para que no dispare demasiadas balas
 
 def mover_balas():
     global balas
@@ -160,69 +194,118 @@ def mover_balas():
         b["y"] -= vel_bala
     balas = [b for b in balas if b["y"] > 0]
 
-def disparar():
-    if not btn.value() and len(balas) < 3:
-        balas.append({"x": x + ANCHO_NAVE//2, "y": y})
+# Animación de explosión de la nave
+def animar_explosion(x_e, y_e):
+    for i in range(3):
+        oled.fill_rect(x_e, y_e, ancho_alien, alto_alien, 1)
+        oled.show()
+        sleep(0.05)
+        oled.fill_rect(x_e, y_e, ancho_alien, alto_alien, 0)
+        oled.show()
+        sleep(0.05)
 
+# Función de colisiones
 def detectar_colisiones():
-    global balas
+    global balas, puntos, vidas, x, y
     nuevas_balas = []
     for b in balas:
         colision = False
         for e in enemigos:
             if e["vivo"]:
-                if (b["x"] >= e["x"] and b["x"] <= e["x"] + ANCHO_ALIEN and
-                    b["y"] >= e["y"] and b["y"] <= e["y"] + ALTO_ALIEN):
+                # Colisiones bala-enemigo
+                if (b["x"] >= e["x"] and b["x"] <= e["x"] + ancho_alien and
+                    b["y"] >= e["y"] and b["y"] <= e["y"] + alto_alien):
                     e["vivo"] = False
                     puntos += 10
+                    animar_explosion(e["x"], e["y"])
                     colision = True
                     break
         if not colision:
             nuevas_balas.append(b)
-    balas = nuevas_balas
+    balas[:] = nuevas_balas
+    
+    # Configuración del ciclo para las colisiones nave-enemigo
+    for e in enemigos:
+        if e["vivo"]:
+            # Colisiones bala-enemigo
+            if (x < e["x"] + ancho_alien and
+                x + ancho_nave > e["x"] and
+                y < e["y"] + alto_alien and
+                y + alto_nave > e["y"]):
+                vidas -= 1
+                e["vivo"] = False # Enemigo destruido al chocar
+                y += 10 # Empujar la nave hacia abajo
+                if y > 64 - alto_nave:
+                    y = 64 - alto_nave
+                if vidas <= 0:
+                    game_over()
     
 def marcador():
-    oled.text("Puntos {}".format(puntos), 0, 0)
-    oled.text("Vidas {}".format(vidas), 80, 0)
+    oled.text("p.p:{}".format(puntos), 0, 0)
+    oled.text("v.v:{}".format(vidas), 85, 0)
+    
+"""
+Creamos la función game_over para avisarle al jugador
+que se ha quedado sin vidas para continuar con el juego,
+por lo tanto regresará al incio del nivel
+"""
+def game_over():
+    global puntos, nivel, vidas, balas, enemigos, x, y, velocidad_nave, velocidad_enemigos
+    oled.fill(0)
+    oled.text("GAME OVER", 30, 20)
+    oled.text("p.p {}".format(puntos), 40, 40)
+    oled.show()
+    sleep(2)
+    # Reiniciar juego
+    puntos = 0
+    vidas = 3
+    nivel = 1
+    velocidad_nave = 2
+    velocidad_enemigos = 1
+    balas.clear()
+    x = (128 - ancho_nave) // 2
+    y = 60
+    enemigos = crear_enemigos()
+    menu()
+
+def presentar_nivel():
+    global nivel
+    oled.fill(0)
+    oled.text("Next lvl {}".format(nivel), 25, 25)
+    oled.show()
+    sleep(2)
+    oled.fill(0)
+    
+"""
+Creamos la función verificar_nivel al momento de comprobar
+que todos los enemigos hayan sido eliminados, para avanzar
+al siguiente nivel en donde los enemigos van a reaparecer
+pero con mayor velocidad.
+"""
+def pasar_siguiente_nivel():
+    global enemigos, nivel, velocidad_nave, velocidad_enemigos, x, y
+    if all(not e["vivo"] for e in enemigos):
+        nivel += 1 # Avanzamos de nivel
+        velocidad_nave += 1 # Aumentamos velocidad de la nave
+        velocidad_enemigos += 1 # Aumentamos velocidad de los enemigos
+        x = (128 - ancho_nave) // 2
+        y = 60
+        enemigos = crear_enemigos()
+        presentar_nivel()
 
 # Juego principal (joystick)
 def ciclo_joystick():
+    presentar_nivel()
+    
     while True:
         oled.fill(0)
         
         mover_nave_joystick()
-        disparo_rafaga()
-        
-        mover_enemigos()
         disparar()
+        mover_enemigos()
         mover_balas()
         detectar_colisiones()
-        
-        marcador()
-        dibujar_nave(x, y)
-
-        for e in enemigos:
-            if e["vivo"]:
-                dibujar_alien(e["x"], e["y"])
-
-        for b in balas:
-            oled.pixel(b["x"], b["y"], 1)
-
-    oled.show()
-    time.sleep(0.05)
-    
-def ciclo_mpu():
-    while True:
-        oled.fill(0)
-
-        mover_nave_mpu()          # Mover con inclinación
-        disparo_rafaga()          # Detectar movimiento rápido y disparar
-
-        mover_enemigos()
-        disparar()
-        mover_balas()
-        detectar_colisiones()
-
+        pasar_siguiente_nivel()
         marcador()
         dibujar_nave(x, y)
 
@@ -234,7 +317,32 @@ def ciclo_mpu():
             oled.pixel(b["x"], b["y"], 1)
 
         oled.show()
-        time.sleep(0.05)
+        sleep(0.05)
+    
+def ciclo_mpu():
+    presentar_nivel()
+    
+    while True:
+        oled.fill(0)
+        
+        mover_nave_mpu()          # Mover con inclinación
+        disparo_rafaga()          # Detectar movimiento rápido y disparar
+        mover_enemigos()
+        mover_balas()
+        detectar_colisiones()
+        pasar_siguiente_nivel()
+        marcador()
+        dibujar_nave(x, y)
+
+        for e in enemigos:
+            if e["vivo"]:
+                dibujar_alien(e["x"], e["y"])
+
+        for b in balas:
+            oled.pixel(b["x"], b["y"], 1)
+
+        oled.show()
+        sleep(0.05)
 
 # Menu principal para seleccionar el modo de movimiento
 # Las opciones del menú se seleccionan con el joystick
@@ -244,23 +352,23 @@ def menu():
     
     while True:
         oled.fill(0)
-        oled.text("== Selecciona ==", 10, 5)
+        oled.text("==Selecciona==", 8, 5)
         
         for i, texto in enumerate(opciones):
             # Flecha para resaltar opción seleccionada
             if i == opcion:
-                oled.text("> " + texto, 10, 20 + i*15)
+                oled.text("> " + texto, 15, 20 + i*15)
             else:
-                oled.text("  " + texto, 10, 20 + i*15)
+                oled.text("  " + texto, 15, 20 + i*15)
         
         oled.show()
         sleep(0.2)
         
         # Cambiar opción con inclinación del joystick
         val_y = joy_y.read()
-        if val_y < 1800:
+        if val_y < 1600:
             opcion = 0        # Joystick
-        elif val_y > 2300:
+        elif val_y > 2500:
             opcion = 1        # MPU6050
         
         # Seleccionar al presionar botón
