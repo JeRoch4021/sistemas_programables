@@ -21,17 +21,21 @@ Objetivo:
 """
 
 #Librerias a utilizar
-from machine import PWM, Pin
+from machine import PWM, Pin, SoftI2C
 from hcsr04 import HCSR04
 from time import sleep
 import machine
-
+import ssd1306
 # Configuramos los pines y tiempo máximo de espera antes de producir un error
 # del sensor ultrasonico para el microcontrolador
 sensor_ultrasonico = HCSR04(trigger_pin=15, echo_pin=12, echo_timeout_us=10000)
 
 # Configuración del sensor PIR
 PIR_Interrupt = Pin(13, Pin.IN)
+
+# Configuración de oled
+i2cOled = SoftI2C(scl=Pin(22), sda=Pin(21))
+oled = ssd1306.SSD1306_I2C(128, 64, i2cOled)
 
 # Configuramos el pin y la frecuencia del zumbador
 pin_zumbador = Pin(14)
@@ -51,12 +55,16 @@ def marcar_distancia_con_zumbador():
         if distancia in (250, -1, 0):
             print("ERROR: Lectura no válida")
         else:
-            print("Distancia medida:", distancia, "cm")
-            
+            medida = distancia, "cm"
+            print(medida)
+            oled.fill(0)
+            oled.text("Distacia: ", 0, 0)
+            oled.text('d.d: {}'.format(distancia)+'cm', 0, 10)
+            oled.show()
             # Encender beep corto
             pwm_zumbador.freq(1000) # Frecuencia fija de beep
             # Establecemos el ciclo de trabajo para generar el tono
-            pwm_zumbador.duty(512) # En pocas palabras se enciende
+            pwm_zumbador.duty(1023) # En pocas palabras se enciende
             sleep(0.05)
             pwm_zumbador.duty(0) # Apagamos
             
@@ -200,7 +208,7 @@ def sonar_melodia_con_PIR():
         for nota, duracion in melodia:
             frecuencia = notas[nota] # Tomamos el valor de la nota
             pwm_zumbador.freq(frecuencia) # Agregamos la frecuencia
-            pwm_zumbador.duty(512) # Hacemos sonar la nota
+            pwm_zumbador.duty(800) # Hacemos sonar la nota
             sleep(duracion) # La hacemos sonar por un cierto tiempo
             pwm_zumbador.duty(0) # Detemos la nota para hacer una pausa
             sleep(0.05) # La mantenemos en pausa por un cierto tiempo
