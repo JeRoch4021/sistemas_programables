@@ -4,7 +4,7 @@ Integrantes:
     Becerra Quezada Fabricio
     
 Fecha:
-    29/09/2025
+    01/10/2025
 
 Objetivo:
     Desarrollar un programa que controle un foco de 110 V utilizando una fotocelda (LDR)
