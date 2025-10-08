@@ -12,7 +12,7 @@ Objetivo:
 import machine
 import time
 
-# Mensaje de arranque
+# Mensajes de arranque
 print("Iniciar sistema de carrito motorizado")
 print("Preparando entorno...")
 time.sleep(1)

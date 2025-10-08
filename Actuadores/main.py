@@ -47,26 +47,36 @@ codigos = {
 
 # Funciones de movimiento
 def avanzar():
+    # Configuramos las salidas digitales para establecer la dirección hacia el norte,
+    # es decir, moverse hacia adelante, usando UP del control remoto.
     IN1.off(); IN2.on();
     IN3.off(); IN4.on();
     print("Avanzando")
     
 def retroceder():
+    # Configuramos las salidas digitales para establecer la dirección hacia el sur,
+    # es decir, moverse hacia atrás, usando DOWN del control remoto.
     IN1.on(); IN2.off();
     IN3.on(); IN4.off();
     print("Retrocediendo")
     
 def girar_izquierda():
+    # Configuramos las salidas digitales para establecer la dirección hacia el oeste,
+    # es decir, moverse hacia la izquierda, usando LEFT del control remoto.
     IN1.off(); IN2.on();
     IN3.on(); IN4.off();
     print("Girar izquierda")
     
 def girar_derecha():
+    # Configuramos las salidas digitales para establecer la dirección hacia el este,
+    # es decir, moverse hacia la derecha, usando RIGHT del control remoto.
     IN1.on(); IN2.off();
     IN3.off(); IN4.on();
     print("Girar derecha")
     
 def detenerse():
+    # Configuramos las salidas digitales para establecer el freno,
+    # es decir, que pare de moverse, usando * o # (cualquiera de los dos hace lo mismo) del control remoto.
     IN1.off(); IN2.off();
     IN3.off(); IN4.off();
     print("Detenido")
