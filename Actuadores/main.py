@@ -11,10 +11,14 @@ from machine import Pin
 import time
 from ir_rx import NEC_16
 
-# Pines del puente H 
-IN1 = Pin(13, Pin.OUT) # Motor izquierdo
+# Pines del puente H
+
+# Motor izquierdo
+IN1 = Pin(13, Pin.OUT)
 IN2 = Pin(12, Pin.OUT)
-IN3 = Pin(14, Pin.OUT) # Motor derecho
+
+# Motor derecho
+IN3 = Pin(14, Pin.OUT)
 IN4 = Pin(27, Pin.OUT)
 
 # Configuración IR
@@ -43,13 +47,13 @@ codigos = {
 
 # Funciones de movimiento
 def avanzar():
-    IN1.on(); IN2.off();
-    IN3.on(); IN4.off();
+    IN1.off(); IN2.on();
+    IN3.off(); IN4.on();
     print("Avanzando")
     
 def retroceder():
-    IN1.off(); IN2.on();
-    IN3.off(); IN4.on();
+    IN1.on(); IN2.off();
+    IN3.on(); IN4.off();
     print("Retrocediendo")
     
 def girar_izquierda():
