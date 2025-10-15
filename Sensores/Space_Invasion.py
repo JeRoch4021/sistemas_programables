@@ -149,15 +149,15 @@ def mover_nave_joystick():
     val_y = joy_y.read()
 
     # Movimiento horizontal
-    if val_x < 1600:
+    if val_x < 1800:
         x -= velocidad_nave
-    elif val_x > 2500:
+    elif val_x > 3000:
         x += velocidad_nave
 
     # Movimiento vertical (invertido: arriba es menor)
-    if val_y < 1600:
+    if val_y < 1800:
         y -= velocidad_nave
-    elif val_y > 2500:
+    elif val_y > 3000:
         y += velocidad_nave
 
     # Limitar dentro de los bordes de la pantalla
@@ -437,9 +437,9 @@ def menu():
         
         # Cambiar opción con inclinación del joystick
         val_y = joy_y.read()
-        if val_y < 1600:
+        if val_y < 1800:
             opcion = 0        # Joystick
-        elif val_y > 2500:
+        elif val_y > 3000:
             opcion = 1        # MPU6050
         
         # Seleccionar al presionar botón

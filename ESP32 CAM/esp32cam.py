@@ -78,16 +78,16 @@ def iniciar_servidor(ip):
         # Verificar si el cliente solicitó una foto
         if b'GET /foto' in request:
             foto = tomar_foto() # Tomar una foto
-        if foto:
-            # Enviar la foto como respuesta HTTP
-            conn.send(b'HTTP/1.1 200 OK\r\n') # Código de estado HTTP 200 (OK)
-            conn.send(b'Content-Type: image/jpeg\r\n\r\n') # Tipo de contenido: imagen JPEG
-            conn.send(foto) # Enviar los datos de la imagen
-        else:
-            # Si no se pudotomar lafoto, enviar un mensaje de error
-            conn.send(b'HTTP/1.1 500 Internal Server Error\r\n')
-            conn.send(b'Content-Type: text/html\r\n\r\n')
-            conn.send(b'<html><body><h1>Error al tomar la foto</h1></body></html>')
+            if foto:
+                # Enviar la foto como respuesta HTTP
+                conn.send(b'HTTP/1.1 200 OK\r\n') # Código de estado HTTP 200 (OK)
+                conn.send(b'Content-Type: image/jpeg\r\n\r\n') # Tipo de contenido: imagen JPEG
+                conn.send(foto) # Enviar los datos de la imagen
+            else:
+                # Si no se pudotomar lafoto, enviar un mensaje de error
+                conn.send(b'HTTP/1.1 500 Internal Server Error\r\n')
+                conn.send(b'Content-Type: text/html\r\n\r\n')
+                conn.send(b'<html><body><h1>Error al tomar la foto</h1></body></html>')
         else:
             # Si el cliente accede a la página principal, mostrar instrucciones
             conn.send(b'HTTP/1.1 200 OK\r\n')
@@ -99,14 +99,12 @@ def iniciar_servidor(ip):
         conn.close() # Cerrar la conexión con el cliente
         
 #----------------------------------------
-# PROGRAMAPRINCIPAL
+# PROGRAMA PRINCIPAL
 #----------------------------------------
 if __name__ == '__main__':
     # Configurar la red Wi-Fi
-    ssid = 'Base_Datos' # Cambia esto por el
-    nombre de tu red Wi-Fi
-    password = 'Bas3deDat0sD11' # Cambia
-    esto por la contraseña de tu red Wi-Fi
+    ssid = "rochasainez" # Cambia esto por el nombre de tu red Wi-Fi
+    password = "35631354" # Cambia esto por la contraseña de tu red Wi-Fi
     # PASO1: Conectar a la red Wi-Fi
     ip = conectar_wifi(ssid, password)
     # PASO2: Inicializar la cámara
