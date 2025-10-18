@@ -33,8 +33,8 @@ def inicializar_camara():
     Función para inicializar la cámara.
     """
     try:
-        camera.init(0, format=camera.JPEG) # Inicializar la cámara en formato JPEG
-        camera.framesize(camera.FRAME_240X240) # Establecer el tamaño de la imagen (240x240 píxeles)
+        camera.init() # Inicializar la cámara en formato JPEG
+        camera.framesize(8) # Establecer el tamaño de la imagen (240x240 píxeles)
         print('Cámara inicializada correctamente.')
     except Exception as e:
         print('Error al inicializar la cámara:', e)
@@ -44,15 +44,20 @@ def inicializar_camara():
  #----------------------------------------
 def tomar_foto():
     """
-    Función para capturar una foto con la
-    cámara.
+    Función para capturar una foto con la cámara.
     :return: Los datos de la imagen capturada.
     """
     print('Tomando una foto...')
     try:
-        foto = camera.capture() # Capturar la imagen
-        print('Foto tomada exitosamente.')
-        return foto
+        foto = camera.capture(encoding=camera.JPEG) # Capturar la imagen
+        if foto:
+            with open('imagen.jpg', 'wb') as abrir_imagen:
+                abrir_imagen.write(foto)
+            print('Foto tomada y guardada exitosamente.')
+            return foto
+        else:
+            print('La foto no se pudo tomar.')
+            return None
     except Exception as e:
         print('Error al tomar la foto:', e)
         return None
@@ -65,46 +70,55 @@ def iniciar_servidor(ip):
     Función para iniciar un servidor web que permite ver la cámara.
     :param ip: Dirección IP del dispositivo
     """
-    addr = (ip, 80) # Dirección IP y puerto del servidor (puerto 80 es estándar para HTTP)
+    addr = (ip, 8080) # Dirección IP y puerto del servidor (puerto 80 es estándar para HTTP)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Crear un socket TCP/IP
     s.bind(addr) # Enlazar el socket a la dirección IP y puerto
     s.listen(1) # Escuchar conexiones entrantes (1 cliente a la vez)
-    print('Servidor web iniciado en http://%s:80' % ip)
+    print('Servidor web iniciado en http://%s:8080' % ip)
     while True:
         conn, addr = s.accept() # Aceptar una conexión entrante
         print('Conexión desde:', addr)
-        request = conn.recv(1024) # Recibir la solicitud del cliente
-        print('Solicitud recibida:', request)
-        # Verificar si el cliente solicitó una foto
-        if b'GET /foto' in request:
-            foto = tomar_foto() # Tomar una foto
-            if foto:
-                # Enviar la foto como respuesta HTTP
-                conn.send(b'HTTP/1.1 200 OK\r\n') # Código de estado HTTP 200 (OK)
-                conn.send(b'Content-Type: image/jpeg\r\n\r\n') # Tipo de contenido: imagen JPEG
-                conn.send(foto) # Enviar los datos de la imagen
+        try:
+            request = conn.recv(1024) # Recibir la solicitud del cliente
+            print('Solicitud recibida:', request)
+            
+            # Verificar si el cliente solicitó una foto
+            if b'GET /foto' in request:
+                foto = tomar_foto() # Tomar una foto
+                if foto:
+                    # Enviar la foto como respuesta HTTP
+                    # Código de estado HTTP 200 (OK)
+                    # Tipo de contenido: imagen JPEG
+                    encabezado = 'HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-length: {}\r\n\r\n'.format(len(foto))
+                    conn.send(encabezado.encode())
+                    conn.send(foto) # Enviar los datos de la imagen
+                    del foto # Liberar memoria
+                else:
+                    # Si no se pudotomar lafoto, enviar un mensaje de error
+                    response = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/html\r\n\r\n'
+                    response += '<html><body><h1>Error al tomar la foto</h1></body></html>'
+                    conn.send(response.encode())
             else:
-                # Si no se pudotomar lafoto, enviar un mensaje de error
-                conn.send(b'HTTP/1.1 500 Internal Server Error\r\n')
-                conn.send(b'Content-Type: text/html\r\n\r\n')
-                conn.send(b'<html><body><h1>Error al tomar la foto</h1></body></html>')
-        else:
-            # Si el cliente accede a la página principal, mostrar instrucciones
-            conn.send(b'HTTP/1.1 200 OK\r\n')
-            conn.send(b'Content-Type: text/html\r\n\r\n')
-            conn.send(b'<html><body>')
-            conn.send(b'<h1>Servidor ESP32-CAM</h1>')
-            conn.send(b'<p>Ir a <a href="/foto">/foto</a> para ver la foto.</p>')
-            conn.send(b'</body></html>')
-        conn.close() # Cerrar la conexión con el cliente
+                # Si el cliente accede a la página principal, mostrar instrucciones
+                response = 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n'
+                response += '<html><body>'
+                response += '<h1>Servidor ESP32-CAM</h1>'
+                response += '<p>Ir a <a href="/foto">/foto</a> para ver la foto.</p>'
+                response += '</body></html>'
+                conn.send(response.encode())
+                
+        except Exception as ex:
+            print('Error en la conexión: ', ex)
+        finally:
+            conn.close() # Cerrar la conexión con el cliente
         
 #----------------------------------------
 # PROGRAMA PRINCIPAL
 #----------------------------------------
 if __name__ == '__main__':
-    # Configurar la red Wi-Fi
+    # Configurar la red Wi-Fi # Cambia esto por la contraseña de tu red Wi-Fi
     ssid = "rochasainez" # Cambia esto por el nombre de tu red Wi-Fi
-    password = "35631354" # Cambia esto por la contraseña de tu red Wi-Fi
+    password = "35631354"
     # PASO1: Conectar a la red Wi-Fi
     ip = conectar_wifi(ssid, password)
     # PASO2: Inicializar la cámara
