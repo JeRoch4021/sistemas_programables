@@ -1,23 +1,20 @@
 import camera
+import time
 
-try:
-    camera.init()
-    camera.framesize(1)
+camera.init()
+camera.framesize(8)
+camera.pixformat(10)
+time.sleep(1)
+
+print("Tomando foto...")
+img = camera.capture()
+
+if img:
+    print("¡ÉXITO! La foto se pudo tomar.")
+    print("Tamaño de la imagen: " + len(img) + "bytes.")
+    with open("test.jpg", "wb") as f:
+        f.write(img)
+    print("Foto tomada correctamente.")
+else:
+    print("No se pudo capturar imagen.")
     
-    print("Cámara inicializada correctamente.")
-    
-    buf = camera.capture()
-    
-    # 3. VERIFICACIÓN: Comprueba si buf es False antes de usar len()
-    if buf:
-        # La captura fue exitosa
-        print("Captura de imagen realizada.")
-        print("Tamaño del buffer:", len(buf))
-        # Aquí es donde guardarías o enviarías 'buf'
-    else:
-        # La captura falló (buf es False)
-        print("Error: La captura de imagen falló (camera.capture() devolvió False).")
-        print("Posible problema: PSRAM insuficiente o fallo de lectura del sensor.")
-    
-except Exception as e:
-    print("Error al inicializar la cámara:", e)

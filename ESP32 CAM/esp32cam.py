@@ -49,7 +49,7 @@ def tomar_foto():
     """
     print('Tomando una foto...')
     try:
-        foto = camera.capture(encoding=camera.JPEG) # Capturar la imagen
+        foto = camera.capture() # Capturar la imagen
         if foto:
             with open('imagen.jpg', 'wb') as abrir_imagen:
                 abrir_imagen.write(foto)
@@ -87,25 +87,22 @@ def iniciar_servidor(ip):
                 foto = tomar_foto() # Tomar una foto
                 if foto:
                     # Enviar la foto como respuesta HTTP
-                    # Código de estado HTTP 200 (OK)
-                    # Tipo de contenido: imagen JPEG
-                    encabezado = 'HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-length: {}\r\n\r\n'.format(len(foto))
-                    conn.send(encabezado.encode())
+                    conn.send(b'HTTP/1.1 200 OK\r\n') # Código de estado HTTP 200 (OK)
+                    conn.send(b'Content-Type: image/jpeg\r\n\r\n') # Tipo de contenido: imagen JPEG
                     conn.send(foto) # Enviar los datos de la imagen
-                    del foto # Liberar memoria
                 else:
-                    # Si no se pudotomar lafoto, enviar un mensaje de error
-                    response = 'HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/html\r\n\r\n'
-                    response += '<html><body><h1>Error al tomar la foto</h1></body></html>'
-                    conn.send(response.encode())
+                    # Si no se pudo tomar la foto, enviar un mensaje de error
+                    conn.send(b'HTTP/1.1 500 Internal Server Error\r\n')
+                    conn.send(b'Content-Type: text/html\r\n\r\n')
+                    conn.send(b'<html><body><h1>Error al tomar la foto</h1></body></html>')
             else:
                 # Si el cliente accede a la página principal, mostrar instrucciones
-                response = 'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n'
-                response += '<html><body>'
-                response += '<h1>Servidor ESP32-CAM</h1>'
-                response += '<p>Ir a <a href="/foto">/foto</a> para ver la foto.</p>'
-                response += '</body></html>'
-                conn.send(response.encode())
+                conn.send(b'HTTP/1.1 200 OK\r\n')
+                conn.send(b'Content-Type: text/html\r\n\r\n')
+                conn.send(b'<html><body>')
+                conn.send(b'<h1>Servidor ESP32-CAM</h1>')
+                conn.send(b'<p>Ir a <a href="/foto">/foto</a> para ver la foto.</p>')
+                conn.send(b'</body></html>')
                 
         except Exception as ex:
             print('Error en la conexión: ', ex)
