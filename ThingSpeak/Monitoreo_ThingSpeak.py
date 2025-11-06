@@ -1,5 +1,5 @@
 # Implementación de librerias
-from machine import Pin, ADC
+from machine import Pin
 from dht import DHT11
 import network
 import urequests
@@ -47,7 +47,7 @@ def conectar_Wifi(ssid, password):
     
     return wlan
 
-# Método para mostrar en pantalla los valores de luminosidad durante 20 seg en la pantalla 
+# Método para mostrar en pantalla los valores de luminosidad durante 0.5 seg en la pantalla 
 def mostrarLuminosidad():
     luminosidad = sensor_LDR.value()
     return luminosidad

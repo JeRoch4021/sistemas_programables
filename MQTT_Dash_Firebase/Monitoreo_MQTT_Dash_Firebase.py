@@ -3,7 +3,6 @@ from umqtt.simple import MQTTClient
 from machine import Pin, PWM
 from dht import DHT11
 import urequests
-import machine
 import network
 import time
 
