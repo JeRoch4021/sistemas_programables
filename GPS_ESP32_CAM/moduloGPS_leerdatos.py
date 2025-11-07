@@ -11,7 +11,10 @@ def procesar_gps():
             datos = uart.read()
             for byte in datos:
                 gps.update(chr(byte))  # Procesa cada carácter
-            print(f"Latitud: {gps.latitude}, Longitud: {gps.longitude}")
+            print(f"Latitud: {gps.latitude}, Longitud: {gps.longitude}, Altitud: {gps.altitude}")
+            print(f"Tiempo UTC: {gps.timestamp}, Fecha: {gps.date}")
+            print(f"Velocidad: {gps.speed}")
         time.sleep(1)
+
 
 procesar_gps()
