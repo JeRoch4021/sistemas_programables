@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mapa GPS ESP32 en Tiempo Real</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    // === CONFIGURA TU FIREBASE ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_lik-BgJ7qjP2iJRoIsIlmMK5OLgXnM4",
+      authDomain: "mapa-interactivo-548d3.firebaseapp.com",
+      databaseURL: "https://mapa-interactivo-548d3-default-rtdb.firebaseio.com",
+      projectId: "mapa-interactivo-548d3",
+      storageBucket: "mapa-interactivo-548d3.firebasestorage.app",
+      messagingSenderId: "765950640547",
+      appId: "1:765950640547:web:0cf75bad20b02bdedc9a16"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    // === MAPA LEAFLET ===
+    const map = L.map('map').setView([21.0823, -101.6577], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+
+    const marker = L.marker([21.0823, -101.6577]).addTo(map);
+
+    // === LECTURA EN TIEMPO REAL ===
+    const db = firebase.database().ref("GPS");
+    db.on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (data && data.Latitud && data.Longitud) {
+        marker.setLatLng([data.Latitud, data.Longitud]);
+        map.setView([data.Latitud, data.Longitud]);
+        console.log("Nueva posición:", data.Latitud, data.Longitud);
+      }
+    });
+  </script>
+</body>
+</html>

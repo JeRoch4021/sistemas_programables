@@ -3,6 +3,7 @@ import network
 import time
 from machine import UART
 from umqtt.simple import MQTTClient
+import urequests
 
 # Parámetros de configuración Wi-Fi
 ssid = "rochasainez"
@@ -17,6 +18,9 @@ Topic_Velocidad = b"practica/gps/velocidad"
 
 # Parámetros de configuración GPS
 sensor_gps = UART(2, baudrate=9600, tx=13, rx=15, timeout=1000)
+
+# Firebase URL
+Firebase_URL = "https://mapa-interactivo-548d3-default-rtdb.firebaseio.com/.json"
 
 def conectar_Wifi(ssid, password):
     """
@@ -37,6 +41,28 @@ def conectar_Wifi(ssid, password):
         
     print("\nConexion exitosa")
     print("Direccion asignada", wlan.ifconfig()[0])
+    
+
+def enviar_datos_firebase(latitud, longitud, altitud):
+    # Diccionario de datos en forma de estructura anidada para luego convertirla
+    # en un formato JSON para enviar a Firebase (el fin es organizar datos de forma clara)
+    datos = {
+        "GPS": {
+            "Altitud": altitud,
+            "Latitud": latitud,
+            "Longitud": longitud   
+        }
+    }
+    
+    try:
+        # Actualizamos solo las claves que se envian dentro del formato JSON
+        response = urequests.patch(Firebase_URL, json=datos)
+        # Mensaje de verificación para comprobar que los datos se enviaron correctamente
+        print("Enviando datos: ", response.status_code)
+        # Cerramos la conexión para liberar memoria de microcontrolador
+        response.close()
+    except Exception as ex:
+        print("Error al enviar sensores: ", ex)
 
 def convertir_grados(valor, direccion):
     """
@@ -57,7 +83,7 @@ def convertir_grados(valor, direccion):
         # Convertir los minutos a grados decimales
         decimal = grados + minutos / 60
         # Cambia el signo porque estas coordenadas son negativas
-        if direccion is ['S', 'W']:
+        if direccion in ['S', 'W']:
             decimal = -decimal
         return decimal
     except:
@@ -117,10 +143,14 @@ def main():
                     if latitud and longitud:
                         # Impresión para verificar que los valores sean correctos
                         print("Latitud: ", latitud, "Longitud: ", longitud, "Altitud: ", altitud)
+                        
                         # Publicación de los datos al servidor MQTT
                         cliente.publish(Topic_Latitud, str(latitud))
                         cliente.publish(Topic_Longitud, str(longitud))
                         cliente.publish(Topic_Altitud, str(altitud))
+                        
+                        # Llamamos a la función para obtener los datos y registrarlos a la base de datos de Firebase
+                        enviar_datos_firebase(latitud, longitud, altitud)
                 # Velocidad
                 elif linea.startswith("$GPVTG"):
                     # Recibimos los valores al igual que la condición anterior
