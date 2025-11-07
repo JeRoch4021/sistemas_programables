@@ -4,6 +4,7 @@ import time
 from machine import UART
 from umqtt.simple import MQTTClient
 import urequests
+from micropyGPS import MicropyGPS
 
 # Parámetros de configuración Wi-Fi
 ssid = "rochasainez"
@@ -15,11 +16,15 @@ Topic_Latitud = b"practica/gps/latitud"
 Topic_Longitud = b"practica/gps/longitud"
 Topic_Altitud = b"practica/gps/altitud"
 Topic_Velocidad = b"practica/gps/velocidad"
+Topic_Fecha = b"practica/gps/fecha"
+Topic_Hora = b"practica/gps/hora"
 
 # Parámetros de configuración GPS
-sensor_gps = UART(2, baudrate=9600, tx=13, rx=15, timeout=1000)
+# Le decimos a MicropyGPS que use el formato 'dd' (Grados decimales)
+gps = MicropyGPS(location_formatting='dd')
+puerto_uart = UART(2, baudrate=9600, tx=13, rx=15, timeout=10)
 
-# Firebase URL
+# URL de Firebase para conectar la base de datos
 Firebase_URL = "https://mapa-interactivo-548d3-default-rtdb.firebaseio.com/.json"
 
 def conectar_Wifi(ssid, password):
@@ -43,14 +48,17 @@ def conectar_Wifi(ssid, password):
     print("Direccion asignada", wlan.ifconfig()[0])
     
 
-def enviar_datos_firebase(latitud, longitud, altitud):
+def enviar_datos_firebase(latitud, longitud, altitud, velocidad, tiempo, fecha):
     # Diccionario de datos en forma de estructura anidada para luego convertirla
     # en un formato JSON para enviar a Firebase (el fin es organizar datos de forma clara)
     datos = {
         "GPS": {
             "Altitud": altitud,
             "Latitud": latitud,
-            "Longitud": longitud   
+            "Longitud": longitud,
+            "Velocidad": velocidad,
+            "Hora": tiempo,
+            "Fecha": fecha
         }
     }
     
@@ -64,56 +72,6 @@ def enviar_datos_firebase(latitud, longitud, altitud):
     except Exception as ex:
         print("Error al enviar sensores: ", ex)
 
-def convertir_grados(valor, direccion):
-    """
-    Convierte las coordenadas GPS del formato NMEA (DDMM.MMMM)
-    a un formato decimal normal para que los mapas puedan entenderlo
-    DD -> grados enteros
-    MM.MMMM -> minutos decimales
-    """
-    try:
-        # Revisamos que el valor no este vacio
-        if not valor or valor == "":
-            return None
-        # Toma los primero dos o tres digitos y los
-        # convierte a grados enteros
-        grados = int(float(valor) / 100)
-        # Extrae los miutos (la parte decimal después de los grados)
-        minutos = float(valor) - grados * 100
-        # Convertir los minutos a grados decimales
-        decimal = grados + minutos / 60
-        # Cambia el signo porque estas coordenadas son negativas
-        if direccion in ['S', 'W']:
-            decimal = -decimal
-        return decimal
-    except:
-        return None
-
-def parsear_linea(linea):
-    """
-    Esta función interpreta las tramas NMEA del modulo GPS y extrae
-    de ellas los datos importantes (latitud, longitud, altitud y velocidad)
-    """
-    if linea.startswith("$GPGGA"):
-        # Divide el texto en comas y crea una lista
-        partes = linea.split(',')
-        # Extracción de los datos específicos
-        latitud = convertir_grados(partes[2], partes[3])
-        longitud = convertir_grados(partes[4], partes[5])
-        altitud = partes[9]
-        return latitud, longitud, altitud
-    if linea.startswith("$GPVTG"):
-        try:
-            # Divide el texto en comas y crea una lista
-            partes = linea.split(',')
-            # Extracción de los datos específicos
-            velocidad = partes[7] if partes[7] != "" else 0.0 # Km/h
-            return velocidad
-        except Exception as ex:
-            print("Error al parsear velocidad: ", ex)
-            return "0.0"
-    return None
-
 def main():
     # Crear cliente MQTT
     cliente = MQTTClient("ESP32", broker_MQTT)
@@ -122,46 +80,77 @@ def main():
     # Imprimir información de conexión
     print("Conectando cliente al Broker MQTT: ", broker_MQTT)
     
-    # Bucle infinito para leer continuamente los datos del sensor GPS,
-    # procesar los datos (latitud, longitud, altitud y velocidad) y
-    # enviar (por medio del Wifi) los datos al servidor MQTT para reflejarlos
-    # en la aplicación MQTT Dash
+    """
+    Bucle infinito para leer continuamente los datos del sensor GPS,
+    enviar (por medio del Wifi) los datos al servidor MQTT para reflejarlos
+    en la aplicación MQTT Dash y registrarlos en la base de datos de Firebase
+    para permitir que el mapa interactivo (creado por un archivo de html con
+    con funciones de javascript) pueda recibirlos por parte de la parametros
+    de configuración de Firebase.
+    """
     while True:
-        # Leer la linea de texto enviada por el sensor GPS
-        linea = sensor_gps.readline()
-        # Se verifica que no haya una linea vacia
-        if linea:
-            try:
-                # Convetir los bytes recibidos a texto legible y elimina
-                # los saltos de linea o espacio sobreantes
-                linea = sensor_gps.readline().decode("utf-8").strip()
-                if linea.startswith("$GPGGA"):
-                    # Recibimos los valores retornados para traducir
-                    # las coordenadas al formato decimal
-                    # (en este caso: latitud, longitud, altitud)
-                    latitud, longitud, altitud = parsear_linea(linea)
-                    if latitud and longitud:
+        # Leer todos los bytes disponibles del buffer UART
+        if puerto_uart.any():
+            # Leer bloque de datos (bytes)
+            datos_uart = puerto_uart.read()
+            if datos_uart:
+                try:
+                    # Procesar cada byte por byte con MicropyGPS
+                    for byte in datos_uart:
+                        # Con el método update se devuelve el nombre de la sentencia
+                        # (ejemplo 'GPGGA') si se procesa
+                        nombre_sentencia = gps.update(chr(byte))
+                    
+                    """
+                    La verificación y la publicación se actualizan cada vez que se procesa una sentencia.
+                    La variable gps.valid se actualiza con sentencias RMC/GGA-GSA (gps.fix_type)
+                    y por lo tanto es mejor verificar el fix porque permite un cálculo de posición
+                    satelital valido al asegurar que todos los datos internos son los más recientes
+                    y válidos, además de evitar datos vacíos que .startswith() deja.
+                    """
+                    
+                    if gps.fix_type >= 2: # Posición horizontal (Latitud y Longitud) válida
+                        # Extracción de los datos específicos
+                        
+                        # Datos de posición y velocidad
+                        latitud = gps.latitude[0]
+                        # Modificación del signo cuando son coordenadas negativas
+                        if (gps.longitude[1]) in ['S', 'W']:
+                            longitud = -(gps.longitude[0])
+                        else:
+                            longitud = gps.longitude[0]
+                        altitud = gps.altitude
+                        velocidad = gps.speed[2]
+                        
+                        # Datos de tiempo y fecha
+                        # Fecha en formato (MM/DD/YY)
+                        fecha = gps.date_string(formatting='s_mdy', century='20')
+                        # Hora en formato (HH:MM:SS)
+                        hora = f"{gps.timestamp[0]:02}:{gps.timestamp[1]:02}:{int(gps.timestamp[2]):02}"
+                        
                         # Impresión para verificar que los valores sean correctos
-                        print("Latitud: ", latitud, "Longitud: ", longitud, "Altitud: ", altitud)
+                        print("\n*** FIX VALIDO ENCONTRADO ***")
+                        print(f"Latitud: {latitud}, Longitud: {longitud}, Altitud: {altitud} m")
+                        print(f"Velocidad: {velocidad} Km/h")
+                        print(f"Fecha: {fecha}, Hora: {hora}s")
                         
                         # Publicación de los datos al servidor MQTT
                         cliente.publish(Topic_Latitud, str(latitud))
                         cliente.publish(Topic_Longitud, str(longitud))
                         cliente.publish(Topic_Altitud, str(altitud))
+                        cliente.publish(Topic_Velocidad, str(velocidad))                        
+                        cliente.publish(Topic_Fecha, str(fecha))
+                        cliente.publish(Topic_Hora, str(hora))
                         
                         # Llamamos a la función para obtener los datos y registrarlos a la base de datos de Firebase
-                        enviar_datos_firebase(latitud, longitud, altitud)
-                # Velocidad
-                elif linea.startswith("$GPVTG"):
-                    # Recibimos los valores al igual que la condición anterior
-                    # (en este caso: velocidad)
-                    velocidad = parsear_linea(linea)
-                    print("Velocidad: ", velocidad, "Km/h")
-                    # Publicación de los datos al servidor MQTT
-                    cliente.publish(Topic_Velocidad, str(velocidad))
-            except Exception as ex:
-                print("Error en: ", ex)
-        time.sleep(0.2)
+                        enviar_datos_firebase(latitud, longitud, altitud, velocidad, fecha, hora)
+                        
+                    elif gps.fix_type == 1:
+                        print("Buscando señal GPS....(No fix)")
+                except Exception as ex:
+                    print("Error en: ", ex)
+        # Instrucción de retardo para no saturar la CPU
+        time.sleep(0.5)
 
 # Función para ejecutar las principales funciones del programa final
 if __name__ == '__main__':
