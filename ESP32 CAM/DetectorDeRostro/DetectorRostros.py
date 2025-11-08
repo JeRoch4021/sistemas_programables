@@ -1,12 +1,12 @@
 import cv2
 import numpy as np
 
-prototxt = "C:/Users/fabri/OneDrive/Documentos/MicroPython/deploy.prototxt" # Ruta al archivo prototxt
-model = "C:/Users/fabri/OneDrive/Documentos/MicroPython/res10_300x300_ssd_iter_140000.caffemodel" # Ruta al archivo caffemodel
+prototxt = "C:/Users/fabri/OneDrive/Documentos/MicroPython/deploy.prototxt" # Pon tu ruta al archivo prototxt
+model = "C:/Users/fabri/OneDrive/Documentos/MicroPython/res10_300x300_ssd_iter_140000.caffemodel" # Pon tu ruta al archivo caffemodel
 net = cv2.dnn.readNetFromCaffe(prototxt, model) # Cargar el modelo DNN
 
 def iniciar_camara(ip):
-    URL_CAMARA = f"http://{ip}:8080/video" # URL de la cámara IP
+    URL_CAMARA = f"http://{ip}:8080/video" # URL de la cámara IP (no cambiar)
     cap = cv2.VideoCapture(URL_CAMARA)
 
     while True:
