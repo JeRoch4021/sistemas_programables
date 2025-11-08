@@ -74,7 +74,7 @@ def enviar_datos_firebase(latitud, longitud, altitud, velocidad, tiempo, fecha):
 
 def main():
     # Crear cliente MQTT
-    cliente = MQTTClient("ESP32", broker_MQTT)
+    cliente = MQTTClient("ESP32-CAM", broker_MQTT)
     # Conectar al servidor MQTT
     cliente.connect()
     # Imprimir información de conexión
