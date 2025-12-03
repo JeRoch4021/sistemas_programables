@@ -7,8 +7,8 @@ import ujson
 import time
 
 # Configuración de wifi
-ssid = "Megacable_2.4G_D0CB"
-password = "43hxGnD5"
+ssid = "" # Cambiar
+password = "" # Cambiar
 
 # Configuracion de pines para la lectura de sensores
 # Sensor de temperatura
